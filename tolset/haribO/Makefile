@@ -26,6 +26,9 @@ ipl10.bin : ipl10.nas Makefile
 asmhead.bin : asmhead.nas Makefile
 	$(NASK) asmhead.nas asmhead.bin asmhead.lst
 
+naskfunc.obj : naskfunc.nas Makefile
+	$(NASK) naskfunc.nas naskfunc.obj naskfunc.lst
+
 bootpack.gas : bootpack.c Makefile
 	$(CC1) -o bootpack.gas bootpack.c
 
@@ -35,9 +38,9 @@ bootpack.nas : bootpack.gas Makefile
 bootpack.obj : bootpack.nas Makefile
 	$(NASK) bootpack.nas bootpack.obj bootpack.lst
 
-bootpack.bim : bootpack.obj Makefile
+bootpack.bim : bootpack.obj naskfunc.obj Makefile
 	$(OBJ2BIM) @$(RULEFILE) out:bootpack.bim stack:3136k map:bootpack.map \
-		bootpack.obj
+		bootpack.obj naskfunc.obj
 # 3MB+64KB=3136KB
 
 bootpack.hrb : bootpack.bim Makefile
