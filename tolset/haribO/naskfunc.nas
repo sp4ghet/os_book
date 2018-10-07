@@ -1,19 +1,75 @@
 
-[FORMAT "WCOFF"]				; ƒIƒuƒWƒFƒNƒgƒtƒ@ƒCƒ‹‚ðì‚éƒ‚[ƒh	
-[INSTRSET "i486p"]				; 486‚Ì–½—ß‚Ü‚ÅŽg‚¢‚½‚¢‚Æ‚¢‚¤‹Lq
-[BITS 32]						; 32ƒrƒbƒgƒ‚[ƒh—p‚Ì‹@ŠBŒê‚ðì‚ç‚¹‚é
-[FILE "naskfunc.nas"]			; ƒ\[ƒXƒtƒ@ƒCƒ‹–¼î•ñ
+[FORMAT "WCOFF"]	
+[INSTRSET "i486p"]
+[BITS 32]
+[FILE "naskfunc.nas"]
 
-		GLOBAL	_io_hlt,_write_mem8
+GLOBAL	_io_hlt, _io_cli, _io_sti, _io_stihlt
+GLOBAL _io_in8, _io_in16, _io_in32
+GLOBAL _io_out8, _io_out16, _io_out32
+GLOBAL _io_load_eflags, _io_store_eflags
 
 [SECTION .text]
 
 _io_hlt:	; void io_hlt(void);
-		HLT
-		RET
+	HLT
+	RET
 
-_write_mem8:	; void write_mem8(int addr, int data);
-		MOV		ECX,[ESP+4]		; [ESP+4]‚Éaddr‚ª“ü‚Á‚Ä‚¢‚é‚Ì‚Å‚»‚ê‚ðECX‚É“Ç‚Ýž‚Þ
-		MOV		AL,[ESP+8]		; [ESP+8]‚Édata‚ª“ü‚Á‚Ä‚¢‚é‚Ì‚Å‚»‚ê‚ðAL‚É“Ç‚Ýž‚Þ
-		MOV		[ECX],AL
-		RET
+_io_cli:
+	CLI
+	RET
+
+_io_sti:
+	STI
+	RET
+
+_io_stihlt:
+	STI
+	HLT
+	RET
+
+_io_in8:
+	MOV EDX, [ESP+4]
+	MOV EAX, 0
+	IN AL, DX
+	RET
+
+_io_in16:
+	MOV EDX, [ESP+4]
+	MOV EAX, 0
+	IN AX, DX
+	RET
+
+_io_in32:
+	MOV EDX, [ESP+4]
+	IN EAX, DX
+	RET
+
+_io_out8:
+	MOV EDX, [ESP+4]
+	MOV AL, [ESP+8]
+	OUT DX, AL
+	RET
+
+_io_out16:
+	MOV EDX, [ESP+4]
+	MOV EAX, [ESP+8]
+	OUT DX, AX
+	RET
+
+_io_out32:
+	MOV EDX, [ESP+4]
+	MOV EAX, [ESP+8]
+	OUT DX, EAX
+	RET
+
+_io_load_eflags:
+	PUSHFD
+	POP EAX
+	RET
+
+_io_store_eflags:
+	MOV EAX, [ESP+4]
+	PUSH EAX
+	POPFD
+	RET
