@@ -1,0 +1,16 @@
+
+# Intermediate files
+*.bin
+*.gas
+*.obj
+*.map
+*.hrb
+*.bim
+bootpack.nas
+
+# Listing file
+*.lst
+
+# Built image
+*.img
+*.sys
