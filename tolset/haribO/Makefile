@@ -1,3 +1,6 @@
+OBJS_BOOTPACK = bootpack.obj naskfunc.obj hankaku.obj graphics.obj dsctable.obj \
+		int.obj
+
 TOOLPATH = ../z_tools/
 INCPATH  = ../z_tools/haribote/
 
@@ -46,10 +49,9 @@ hankaku.bin : hankaku.txt Makefile
 hankaku.obj : hankaku.bin Makefile
 	$(BIN2OBJ) hankaku.bin hankaku.obj _hankaku
 
-bootpack.bim : bootpack.obj graphics.obj dsctable.obj naskfunc.obj hankaku.obj Makefile
-	$(OBJ2BIM) @$(RULEFILE) out:bootpack.bim stack:3136k map:bootpack.map \
-		bootpack.obj naskfunc.obj hankaku.obj graphics.obj dsctable.obj
 # 3MB+64KB=3136KB
+bootpack.bim : $(OBJS_BOOTPACK) Makefile
+	$(OBJ2BIM) @$(RULEFILE) out:bootpack.bim stack:3136k map:bootpack.map $(OBJS_BOOTPACK)
 
 bootpack.hrb : bootpack.bim Makefile
 	$(BIM2HRB) bootpack.bim bootpack.hrb 0

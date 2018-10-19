@@ -2,41 +2,35 @@
 #include "bootpack.h"
 #include "graphics.h"
 #include "dsctable.h"
-
-struct BOOTINFO {
-    char cylinders, leds, videoMode, reserve;
-    short screenX, screenY;
-    char* vram;
-};
-
+#include "int.h"
 
 void HariMain(void){
+    struct BOOTINFO *binfo = (struct BOOTINFO*) ADR_BOOTINFO;
+
+    init_gdtidt();
+    init_pic();
+    io_sti();
     
     init_palette();
-
-    struct BOOTINFO *binfo = (struct BOOTINFO*) 0x00ff0;
-
-    int xsize = binfo->screenX;
-    int ysize = binfo->screenY;
-    char* vram = binfo->vram;
-    
-    init_gdtidt();
-    init_screen(vram, xsize, ysize);
-
+    init_screen(binfo->vram, binfo->screenX, binfo->screenY);
     // putfont8(vram, xsize, 8, 8, COL8_ffffff, hankaku + 'A'*16);
-    putfonts8_asci(vram, xsize, 8, 8, COL8_ffffff, "ABC 123");
-    putfonts8_asci(vram, xsize, 31, 31, COL8_000000, "Haribote os.");
-    putfonts8_asci(vram, xsize, 30, 30, COL8_ffffff, "Haribote os.");
+    // putfonts8_asci(binfo->vram, binfo->screenX, 8, 8, COL8_ffffff, "ABC 123");
+    // putfonts8_asci(binfo->vram, binfo->screenX, 31, 31, COL8_000000, "Haribote os.");
+    // putfonts8_asci(binfo->vram, binfo->screenX, 30, 30, COL8_ffffff, "Haribote os.");
+    // char* s = "";
+    // sprintf(s, "cylinders = 0x%05x", binfo->cylinders);
+    // putfonts8_asci(binfo->vram, binfo->screenX, 30, 60, COL8_ffffff, s);
 
-    char* s = "";
-    sprintf(s, "cylinders = 0x%05x", binfo->cylinders);
-    putfonts8_asci(vram, xsize, 30, 60, COL8_ffffff, s);
-
-    char* mcursor = "";
-    int mx = 160,
-        my = 100;
+    char* s[40], mcursor[256];
+    int mx = (binfo->screenX - 16) / 2,
+        my = (binfo->screenY - 28 - 16) / 2;
     init_cursor(mcursor, COL8_008484);
-    putblock8_8(vram, xsize, 16, 16, mx, my, mcursor, 16);
+    putblock8_8(binfo->vram, binfo->screenX, 16, 16, mx, my, mcursor, 16);
+    sprintf(s, "(%d, %d)", mx, my);
+    putfonts8_asci(binfo->vram, binfo->screenX, 0, 0, COL8_ffffff, s);
+
+    io_out8(PIC0_IMR, 0xf9);
+    io_out8(PIC1_IMR, 0xef);
 
     for(;;){
         io_hlt();
