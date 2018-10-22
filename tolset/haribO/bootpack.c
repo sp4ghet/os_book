@@ -4,6 +4,8 @@
 #include "dsctable.h"
 #include "int.h"
 
+extern struct KEYBUF keybuf;
+
 void HariMain(void){
     struct BOOTINFO *binfo = (struct BOOTINFO*) ADR_BOOTINFO;
 
@@ -21,7 +23,7 @@ void HariMain(void){
     // sprintf(s, "cylinders = 0x%05x", binfo->cylinders);
     // putfonts8_asci(binfo->vram, binfo->screenX, 30, 60, COL8_ffffff, s);
 
-    char* s[40], mcursor[256];
+    char s[40], mcursor[256];
     int mx = (binfo->screenX - 16) / 2,
         my = (binfo->screenY - 28 - 16) / 2;
     init_cursor(mcursor, COL8_008484);
@@ -33,7 +35,17 @@ void HariMain(void){
     io_out8(PIC1_IMR, 0xef);
 
     for(;;){
-        io_hlt();
+        io_cli();
+        if(keybuf.flag == 0){
+            io_stihlt();
+        }else{
+            int i = keybuf.data;
+            keybuf.flag = 0;
+            io_sti();
+            sprintf(s, "%02X", i);
+            boxfill(binfo->vram, binfo->screenX, COL8_008484, 0, 16, 15, 31);
+            putfonts8_asci(binfo->vram, binfo->screenX, 0, 16, COL8_ffffff, s);
+        }
     }
 
 }

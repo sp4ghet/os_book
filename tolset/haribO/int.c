@@ -1,6 +1,8 @@
 #include "int.h"
-#include "bootpack.h"
 #include "graphics.h"
+#include "bootpack.h"
+
+struct KEYBUF keybuf;
 
 void init_pic(void){
     // disable all interrupts
@@ -21,13 +23,18 @@ void init_pic(void){
     io_out8(PIC1_IMR, 0xff); // disable all interrupts
 }
 
+// keyboard
 void inthandler21(int *esp){
-    struct BOOTINFO *binfo = (struct BOOTINFO *) ADR_BOOTINFO;
-    boxfill(binfo->vram, binfo->screenX, COL8_000000, 0, 0, 32 * 8 - 1, 15);
-    putfonts8_asci(binfo->vram, binfo->screenX, 0, 0, COL8_ffffff, "INT 21 (IRQ-1) : PS/2 Keyboard");
-    for(;;){
-        io_hlt();
+    unsigned char data;
+    io_out8(PIC0_OCW2, 0x61); //Notify PIC that IRQ-01 is read
+    data = io_in8(PORT_KEYDAT);
+
+    if(keybuf.flag == 0){
+        keybuf.data = data;
+        keybuf.flag = 1;
     }
+   
+    return;
 }
 
 void inthandler2c(int *esp){
