@@ -1,8 +1,9 @@
 #include "int.h"
 #include "graphics.h"
 #include "bootpack.h"
+#include "fifo.h"
 
-struct KEYBUF keybuf;
+struct FIFO keybuf;
 
 void init_pic(void){
     // disable all interrupts
@@ -29,10 +30,7 @@ void inthandler21(int *esp){
     io_out8(PIC0_OCW2, 0x61); //Notify PIC that IRQ-01 is read
     data = io_in8(PORT_KEYDAT);
 
-    if(keybuf.flag == 0){
-        keybuf.data = data;
-        keybuf.flag = 1;
-    }
+    fifo8_put(&keybuf, data);
    
     return;
 }

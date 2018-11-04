@@ -3,6 +3,7 @@
 #include "graphics.h"
 #include "dsctable.h"
 #include "int.h"
+#include "fifo.h"
 
 extern struct KEYBUF keybuf;
 
@@ -12,6 +13,9 @@ void HariMain(void){
     init_gdtidt();
     init_pic();
     io_sti();
+
+    unsigned char *buf;
+    fifo8_init(&keybuf, 32, buf);
     
     init_palette();
     init_screen(binfo->vram, binfo->screenX, binfo->screenY);
@@ -36,16 +40,14 @@ void HariMain(void){
 
     for(;;){
         io_cli();
-        if(keybuf.flag == 0){
+        if(fifo8_status(&keybuf) == 0){
             io_stihlt();
         }else{
-            int i = keybuf.data;
-            keybuf.flag = 0;
+            int i = fifo8_get(&keybuf);
             io_sti();
             sprintf(s, "%02X", i);
             boxfill(binfo->vram, binfo->screenX, COL8_008484, 0, 16, 15, 31);
-            putfonts8_asci(binfo->vram, binfo->screenX, 0, 16, COL8_ffffff, s);
+            putfonts8_asci(binfo->vram, binfo->screenX, 0, 16, COL8_ffffff, s);   
         }
     }
-
 }

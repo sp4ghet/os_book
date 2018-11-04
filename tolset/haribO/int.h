@@ -21,8 +21,4 @@ void inthandler21(int *esp);
 void inthandler2c(int *esp);
 void inthandler27(int *esp);
 
-struct KEYBUF {
-    unsigned char data, flag;
-};
-
 #endif
