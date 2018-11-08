@@ -10,32 +10,31 @@ extern struct FIFO mousebuf;
 
 void HariMain(void){
     struct BOOTINFO *binfo = (struct BOOTINFO*) ADR_BOOTINFO;
+    struct MOUSE_DEC mdec; 
+    unsigned char *kbuf, *mbuf;
+    char s[40], mcursor[16*16];
+    int mx = (binfo->screenX - 16) / 2,
+        my = (binfo->screenY - 28 - 16) / 2;
 
+    // initialize GDT/IDT and PIC
+    // we do this first because the asmhead doesn't load the proper GDT/IDT and we will have garbage interrupts piling up in the PIC
     init_gdtidt();
     init_pic();
     io_sti();
 
-    unsigned char *kbuf;
     fifo8_init(&keybuf, 32, kbuf);
-    unsigned char *mbuf;
     fifo8_init(&mousebuf, 128, mbuf);
-    
-    unsigned char mouse_dbuf[3], mouse_phase;
 
+    // initialize various modules
     init_palette();
     init_screen(binfo->vram, binfo->screenX, binfo->screenY);
     init_keyboard();
-    enable_mouse();
-    mouse_phase = 0;
+    enable_mouse(&mdec);
 
-    char s[40], mcursor[256];
-    int mx = (binfo->screenX - 16) / 2,
-        my = (binfo->screenY - 28 - 16) / 2;
+    // initialize mouse cursor and draw on screen
     init_cursor(mcursor, COL8_008484);
-    putblock8_8(binfo->vram, binfo->screenX, 16, 16, mx, my, mcursor, 16);
-    sprintf(s, "(%d, %d)", mx, my);
-    putfonts8_asci(binfo->vram, binfo->screenX, 0, 0, COL8_ffffff, s);
-
+   
+    // initialize mouse and keyboard interrupt handlers
     io_out8(PIC0_IMR, 0xf9);
     io_out8(PIC1_IMR, 0xef);
 
@@ -53,22 +52,19 @@ void HariMain(void){
             }else if(fifo8_status(&mousebuf) != 0){
                 int i = fifo8_get(&mousebuf);
                 io_sti();
-                if(mouse_phase == 0){
-                    if (i == 0xfa){
-                        mouse_phase = 1;
-                    }
-                }else if(mouse_phase == 1){
-                   mouse_dbuf[0] = i;
-                   mouse_phase = 2;
-                }else if(mouse_phase == 2){
-                    mouse_dbuf[1] = i;
-                    mouse_phase = 3;
-                }else if(mouse_phase == 3){
-                    mouse_dbuf[2] = i;
-                    sprintf(s, "%02X %02X %02X ", mouse_dbuf[0], mouse_dbuf[1], mouse_dbuf[2]);
+                if(mouse_decode(&mdec, i) == 1){
+                    sprintf(s, "%02X %02X %02X ", mdec.buf[0], mdec.buf[1], mdec.buf[2]);
                     boxfill(binfo->vram, binfo->screenX, COL8_008484, 32, 16, 32 + 8*8-1, 31);
                     putfonts8_asci(binfo->vram, binfo->screenX, 32, 16, COL8_ffffff, s);
-                    mouse_phase = 1;
+
+
+                    boxfill(binfo->vram, binfo->screenX, COL8_008484, mx, my, mx+16, my+16);
+                    mx += mdec.x;
+                    my += mdec.y;
+                    putblock8_8(binfo->vram, binfo->screenX, 16, 16, mx, my, mcursor, 16);
+                    sprintf(s, "(%d, %d) click: %1x", mdec.x, mdec.y, mdec.btn);
+                    boxfill(binfo->vram, binfo->screenX, COL8_008484, 0, 0, 8*(strlen(s) + 3), 16);
+                    putfonts8_asci(binfo->vram, binfo->screenX, 0, 0, COL8_ffffff, s);
                 }
             }
         }
@@ -92,10 +88,51 @@ void init_keyboard(void){
     return;
 }
 
-void enable_mouse(void){
+void enable_mouse(struct MOUSE_DEC *mdec){
     wait_KBC_sendready();
     io_out8(PORT_KEYCMD, KEYCMD_SENDTO_MOUSE);
     wait_KBC_sendready();
     io_out8(PORT_KEYDAT, MOUSECMD_ENABLE);
+    // we are waiting for 0xfa from the mouse controller (ACK)
+    mdec->phase = 0;
     return;
+}
+
+int mouse_decode(struct MOUSE_DEC *mdec, unsigned char data){
+    // Read data from mouse fifo buffer, return 1 when entire 3 byte message is read.
+    // return 0 in all other cases.
+    if(mdec->phase == 0){
+        if(data == 0xfa){
+            mdec->phase = 1;
+        }
+        return 0;
+    }else if(mdec->phase == 1){
+        if((data & 0xc8) != 0x08){return 0;} // first byte of mouse triplet should match this signature
+        mdec->buf[0] = data;
+        mdec->phase = 2;
+        return 0;
+    }else if(mdec->phase == 2){
+        mdec->buf[1] = data;
+        mdec->phase = 3;
+        return 0;
+    }else if(mdec->phase == 3){
+        mdec->buf[2] = data;
+        mdec->phase = 1;
+
+        mdec->btn = mdec->buf[0] & 0x07;
+        mdec->x = mdec->buf[1];
+        mdec->y = mdec->buf[2];
+        if((mdec->buf[0] & 0x10) != 0){
+            mdec->x |= 0xffffff00;
+        }
+        if((mdec->buf[0] & 0x20) != 0){
+            mdec->y |= 0xffffff00;
+        }
+        mdec->y = -mdec->y;
+
+        return 1;
+    }
+
+    // should never reach this PoC, error case.
+    return -1;
 }

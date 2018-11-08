@@ -118,6 +118,7 @@ skip:
 waitkbdout:
 		IN		 AL,0x64
 		AND		 AL,0x02
+		IN 		 AL,0x60
 		JNZ		waitkbdout		; ANDの結果が0でなければwaitkbdoutへ
 		RET
 
@@ -131,7 +132,7 @@ memcpy:
 		RET
 ; memcpyはアドレスサイズプリフィクスを入れ忘れなければ、ストリング命令でも書ける
 
-		ALIGNB	16
+		ALIGNB	8
 GDT0:
 		RESB	8				; ヌルセレクタ
 		DW		0xffff,0x0000,0x9200,0x00cf	; 読み書き可能セグメント32bit
@@ -142,5 +143,5 @@ GDTR0:
 		DW		8*3-1
 		DD		GDT0
 
-		ALIGNB	16
+		; ALIGNB	16
 bootpack:

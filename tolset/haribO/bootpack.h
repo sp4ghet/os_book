@@ -12,7 +12,18 @@
 #define KEYCMD_SENDTO_MOUSE     0xd4
 #define MOUSECMD_ENABLE         0xf4
 
-// functions defined in naskfunc.nas
+struct BOOTINFO {
+    char cylinders, leds, videoMode, reserve;
+    short screenX, screenY;
+    char* vram;
+};
+
+struct MOUSE_DEC {
+    unsigned char buf[3], phase;
+    int x,y, btn;
+};
+
+// functions defined in naskfunc.nas in assembly
 void io_hlt(void);
 void io_cli(void);
 void io_sti(void);
@@ -27,15 +38,11 @@ void asm_inthandler21(void);
 void asm_inthandler27(void);
 void asm_inthandler2c(void);
 
+// functions in bootpack.c
 void HariMain(void);
 void wait_KBC_sendready(void);
 void init_keyboard(void);
-void enable_mouse(void);
-
-struct BOOTINFO {
-    char cylinders, leds, videoMode, reserve;
-    short screenX, screenY;
-    char* vram;
-};
+void enable_mouse(struct MOUSE_DEC *mdec);
+int mouse_decode(struct MOUSE_DEC *mdec, unsigned char data);
 
 #endif

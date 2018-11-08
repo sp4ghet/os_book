@@ -46,7 +46,6 @@ entry:
 
 readloop:
     MOV SI, 0       ;init counter
-    
 retry:
     MOV AH, 0x02
     MOV AL, 1
