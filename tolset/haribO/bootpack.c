@@ -70,7 +70,7 @@ void HariMain(void){
                     my += mdec.y;
                     putblock8_8(binfo->vram, binfo->screenX, 16, 16, mx, my, mcursor, 16);
                     sprintf(s, "(%d, %d) click: %1x", mdec.x, mdec.y, mdec.btn);
-                    boxfill(binfo->vram, binfo->screenX, COL8_008484, 0, 0, 8*(strlen(s) + 3), 16);
+                    boxfill(binfo->vram, binfo->screenX, COL8_008484, 0, 0, 160, 16);
                     putfonts8_asci(binfo->vram, binfo->screenX, 0, 0, COL8_ffffff, s);
                 }
             }
@@ -107,27 +107,5 @@ unsigned int memtest(unsigned int start, unsigned int end){
         store_cr0(cr0);
     }
 
-    return i;
-}
-
-unsigned int memtest_sub(unsigned int start, unsigned int end){
-    unsigned int i, old, pat0 = 0xaa55aa5, pat1 = 0x55aa55aa;
-    volatile unsigned int *p;
-    for(i = start; i < end; i += 0x1000){
-        p = (unsigned int *)i;
-        old = *p;
-        *p = pat0;
-        *p ^= 0xffffffff;
-        if(*p != pat1){
-not_memory:
-            *p = old;
-            break;
-        }
-        *p ^= 0xffffffff;
-        if(*p != pat0){
-            goto not_memory;
-        }
-        *p = old;
-    }
     return i;
 }
