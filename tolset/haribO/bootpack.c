@@ -109,3 +109,18 @@ unsigned int memtest(unsigned int start, unsigned int end){
 
     return i;
 }
+
+void memman_init(struct MEMMAN *man){
+    man->frees = 0;
+    man->maxfrees = 0;
+    man->losts = 0;
+    man->lostsize = 0;
+}
+
+unsigned int memman_total(struct MEMMAN *man){
+
+}
+
+unsigned int memman_alloc(struct MEMMAN *man){
+
+}
