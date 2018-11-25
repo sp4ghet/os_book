@@ -31,7 +31,7 @@ void init_gdtidt(void){
 void set_segmdesc(struct SEGMENT_DESCRIPTOR *sd, unsigned int limit, int base, int ar){
     if(limit > 0xfffff){
      ar |= 0x8000;
-     limit /= 0x1000;   
+     limit /= 0x1000;
     }
 
     sd->limit_low       = limit & 0xffff;

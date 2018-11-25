@@ -32,7 +32,7 @@ void inthandler21(int *esp){
     data = io_in8(PORT_KEYDAT);
 
     fifo8_put(&keybuf, data);
-   
+
     return;
 }
 

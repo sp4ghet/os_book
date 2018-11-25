@@ -1,4 +1,6 @@
 #include "mouse.h"
+#include "bootpack.h"
+#include "keyboard.h"
 
 void enable_mouse(struct MOUSE_DEC *mdec){
     wait_KBC_sendready();

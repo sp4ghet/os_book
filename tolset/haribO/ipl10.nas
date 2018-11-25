@@ -73,7 +73,7 @@ next:
     ; read other head and other cylinder
     MOV CL, 1
     ADD DH, 1 ;move to other head
-    CMP DH, 2 
+    CMP DH, 2
     JB readloop ;read if headId < 2 (0,1)
     MOV DH, 0   ;if not, move to next cylinder and switch back to head0
     ADD CH, 1

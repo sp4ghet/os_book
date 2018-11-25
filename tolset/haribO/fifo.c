@@ -22,7 +22,7 @@ int fifo8_put(struct FIFO *fifo, unsigned char data){
 
     fifo->free--;
     fifo->buf[fifo->writeP] = data;
-    return;
+    return 0;
 }
 
 int fifo8_get(struct FIFO *fifo){
@@ -38,7 +38,7 @@ int fifo8_get(struct FIFO *fifo){
     }
     int data = fifo->buf[fifo->readP];
     fifo->free++;
-    
+
     return data;
 }
 

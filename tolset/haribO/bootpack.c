@@ -12,7 +12,8 @@ extern struct FIFO mousebuf;
 
 void HariMain(void){
     struct BOOTINFO *binfo = (struct BOOTINFO*) ADR_BOOTINFO;
-    struct MOUSE_DEC mdec; 
+    struct MOUSE_DEC mdec;
+    struct MEMMAN *memman = (struct MEMMAN *) MEMMAN_ADDR;
     unsigned char *kbuf, *mbuf;
     char s[40], mcursor[16*16];
     int mx = (binfo->screenX - 16) / 2,
@@ -31,8 +32,12 @@ void HariMain(void){
     init_palette();
     init_screen(binfo->vram, binfo->screenX, binfo->screenY);
 
-    unsigned int mem = memtest(0x00400000, 0xbfffffff) / (1024*1024);
-    sprintf(s, "memory: %dMB", mem);
+    unsigned int mem_total = memtest(0x00400000, 0xbfffffff);
+    memman_init(memman);
+    memman_free(memman, 0x00001000, 0x0009e000);
+    memman_free(memman, 0x00400000, mem_total - 0x00400000);
+
+    sprintf(s, "memory: %dMB, free: %dMB", mem_total / (1024*1024), memman_total(memman) / (1024*1024));
     putfonts8_asci(binfo->vram, binfo->screenX, 0, 64, COL8_ffffff, s);
 
     init_keyboard();
@@ -40,7 +45,7 @@ void HariMain(void){
 
     // initialize mouse cursor and draw on screen
     init_cursor(mcursor, COL8_008484);
-   
+
     // initialize mouse and keyboard interrupt handlers
     io_out8(PIC0_IMR, 0xf9);
     io_out8(PIC1_IMR, 0xef);
@@ -55,7 +60,7 @@ void HariMain(void){
                 io_sti();
                 sprintf(s, "%02X", i);
                 boxfill(binfo->vram, binfo->screenX, COL8_008484, 0, 16, 15, 31);
-                putfonts8_asci(binfo->vram, binfo->screenX, 0, 16, COL8_ffffff, s);   
+                putfonts8_asci(binfo->vram, binfo->screenX, 0, 16, COL8_ffffff, s);
             }else if(fifo8_status(&mousebuf) != 0){
                 int i = fifo8_get(&mousebuf);
                 io_sti();
@@ -118,9 +123,85 @@ void memman_init(struct MEMMAN *man){
 }
 
 unsigned int memman_total(struct MEMMAN *man){
-
+    unsigned int i, t = 0;
+    for (i = 0; i < man->frees; i++){
+        t += man->free[i].size;
+    }
+    return t;
 }
 
-unsigned int memman_alloc(struct MEMMAN *man){
+unsigned int memman_alloc(struct MEMMAN *man, unsigned int size){
+    unsigned int i, a;
+    for(i = 0; i < man->frees; i++){
+        a = man->free[i].addr;
+        man->free[i].addr += size;
+        man->free[i].size -= size;
 
+        if(man->free[i].size == 0){
+            // we used up this sector, so shift the free memory array forward
+            man->frees--;
+            for(; i< man->frees; i++){
+                man->free[i] = man->free[i+1];
+            }
+        }
+        return a;
+    }
+    // not enough memory
+    return 0;
+}
+
+
+int memman_free(struct MEMMAN *man, unsigned int addr, unsigned int size){
+    int i, j;
+
+    // find the sector in the free memory closest to the sector being freed
+    for(i = 0; i < man->frees; i++){
+        if(man->free[i].addr > addr){
+            break;
+        }
+    }
+
+    if(i>0){
+        if(man->free[i-1].addr + man->free[i-1].size == addr){
+            //sector being freed is continuous from previous sector
+            man->free[i-1].size += size;
+            if(i < man->frees && addr+size == man->free[i].addr){
+                //there is a sector in free memory continuous after the sector being freed
+                man->free[i-1].size += man->free[i].size;
+                man->frees--;
+                for(; i < man->frees; i++){
+                    man->free[i] = man->free[i+1];
+                }
+            }
+            return 0;
+        }
+    }
+
+    //unable to merge sector being freed with previous sector
+    if(i < man->frees && addr+size == man->free[i].addr){
+        //able to merge with sector after sector being freed
+        man->free[i].addr -= size;
+        man->free[i].size += size;
+    }
+
+    //unable to merge with anything
+    if(man->frees < MEMMAN_FREES){
+        for(j = man->frees; j > i; j--){
+            // push back all sectors after sector being freed
+            man->free[j] = man->free[j-1];
+        }
+        man->frees++;
+        if(man->maxfrees < man->frees){
+            man->maxfrees = man->frees;
+        }
+
+        man->free[i].addr = addr;
+        man->free[i].size = size;
+        return 0;
+    }
+
+    man->losts++;
+    man->lostsize += size;
+    // return failure
+    return -1;
 }
