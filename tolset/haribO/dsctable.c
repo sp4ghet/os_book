@@ -1,5 +1,6 @@
 #include "dsctable.h"
 #include "bootpack.h"
+#include "asm.h"
 
 void init_gdtidt(void){
     struct SEGMENT_DESCRIPTOR   *gdt = (struct SEGMENT_DESCRIPTOR *) ADR_GDT;

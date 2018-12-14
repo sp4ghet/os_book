@@ -2,6 +2,7 @@
 #include "graphics.h"
 #include "bootpack.h"
 #include "fifo.h"
+#include "asm.h"
 
 struct FIFO keybuf;
 struct FIFO mousebuf;

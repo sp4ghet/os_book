@@ -1,5 +1,6 @@
 #include "graphics.h"
 #include "bootpack.h"
+#include "asm.h"
 
 void boxfill(unsigned char *vram, int xsize, unsigned char c, int x0, int y0, int x1, int y1){
 

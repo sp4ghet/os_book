@@ -1,5 +1,6 @@
 #include "keyboard.h"
 #include "bootpack.h"
+#include "asm.h"
 
 void wait_KBC_sendready(void){
     for(;;){
