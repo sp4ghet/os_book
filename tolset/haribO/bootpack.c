@@ -26,6 +26,8 @@ void HariMain(void){
     int mx = (binfo->screenX - 16) / 2,
         my = (binfo->screenY - 28 - 16) / 2;
 
+    unsigned int counter = 0;
+
     // initialize GDT/IDT and PIC
     // we do this first because the asmhead doesn't load the proper GDT/IDT and we will have garbage interrupts piling up in the PIC
     init_gdtidt();
@@ -42,23 +44,26 @@ void HariMain(void){
 
     // initialize various modules
     init_palette();
-    shtctl =  shctl_init(memman, binfo->vram, binfo->screenX, binfo->screenY);
+    shtctl =  shtctl_init(memman, binfo->vram, binfo->screenX, binfo->screenY);
     sheet_back = sheet_alloc(shtctl);
     sheet_mouse = sheet_alloc(shtctl);
     sheet_win = sheet_alloc(shtctl);
     buf_back = (unsigned char *) memman_alloc_4k(memman, binfo->screenX * binfo->screenY);
-    buf_win = (unsigned char *) memman_alloc_4k(memman, 160 * 68);
+    buf_win = (unsigned char *) memman_alloc_4k(memman, 160 * 52);
     sheet_setbuf(sheet_back, buf_back, binfo->screenX, binfo->screenY, -1); // no transparent color
     sheet_setbuf(sheet_mouse, buf_mouse, 16, 16, 99); // color 99 is transparent
-    sheet_setbuf(sheet_win, buf_win, 160, 68, -1);
-    init_screen(buf_back, binfo->screenX, binfo->screenY);
-    init_cursor(buf_mouse, 99);
+    sheet_setbuf(sheet_win, buf_win, 160, 52, -1);
+
+    sheet_updown(sheet_back, 0);
+    sheet_updown(sheet_win, 1);
+    sheet_updown(sheet_mouse, 2);
+
     sheet_slide(sheet_back, 0, 0);
     sheet_slide(sheet_mouse, mx, my);
     sheet_slide(sheet_win, 80, 72);
-    sheet_updown(sheet_back, 0);
-    sheet_updown(sheet_mouse, 1);
-    sheet_updown(sheet_win, 3);
+
+    init_screen(buf_back, binfo->screenX, binfo->screenY);
+    init_cursor(buf_mouse, 99);
 
     sprintf(s, "(%d, %d)", mx, my);
     boxfill(buf_back, sheet_back->bxsize, COL8_008484, 0, 0, 160, 16);
@@ -67,8 +72,8 @@ void HariMain(void){
     putfonts8_asci(buf_back, binfo->screenX, 0, 64, COL8_ffffff, s);
     sheet_refresh(sheet_back, 0, 0, sheet_back->bxsize, sheet_back->bysize);
 
-    make_window8(buf_win, 160, 68, "hoge window");
-    sheet_refresh(sheet_win, 0, 0, 160, 68);
+    make_window8(buf_win, 160, 52, "counter");
+    sheet_refresh(sheet_win, 0, 0, 160, 52);
 
     init_keyboard();
     enable_mouse(&mdec);
@@ -78,9 +83,15 @@ void HariMain(void){
     io_out8(PIC1_IMR, 0xef);
 
     for(;;){
+        counter++;
+        sprintf(s, "%010d", counter);
+        boxfill(buf_win, 160, COL8_c6c6c6, 40, 28, 119, 43);
+        putfonts8_asci(buf_win, 160, 40, 28, COL8_000000, s);
+        sheet_refresh(sheet_win, 40, 28, 120, 44);
+
         io_cli();
         if(fifo8_status(&keybuf) + fifo8_status(&mousebuf) == 0){
-            io_stihlt();
+            io_sti();
         }else{
             if(fifo8_status(&keybuf) != 0){
                 int i = fifo8_get(&keybuf);
