@@ -14,6 +14,7 @@ unsigned int load_cr0();
 void store_cr0(unsigned int cr0);
 void load_gdtr(int limit, int addr);
 void load_idtr(int limit, int addr);
+void asm_inthandler20(void);
 void asm_inthandler21(void);
 void asm_inthandler27(void);
 void asm_inthandler2c(void);

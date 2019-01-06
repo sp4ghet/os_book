@@ -1,5 +1,5 @@
 
-[FORMAT "WCOFF"]	
+[FORMAT "WCOFF"]
 [INSTRSET "i486p"]
 [BITS 32]
 [FILE "naskfunc.nas"]
@@ -9,10 +9,10 @@ GLOBAL _io_in8, _io_in16, _io_in32
 GLOBAL _io_out8, _io_out16, _io_out32
 GLOBAL _io_load_eflags, _io_store_eflags
 GLOBAL _load_gdtr, _load_idtr
-GLOBAL _asm_inthandler21, _asm_inthandler2c, _asm_inthandler27
+GLOBAL _asm_inthandler20, _asm_inthandler21, _asm_inthandler2c, _asm_inthandler27
 GLOBAL _load_cr0, _store_cr0
 GLOBAL _memtest_sub
-EXTERN _inthandler21, _inthandler2c, _inthandler27
+EXTERN _inthandler20, _inthandler21, _inthandler2c, _inthandler27
 
 [SECTION .text]
 
@@ -91,6 +91,22 @@ _load_idtr:
 	LIDT 	[ESP+6]
 	RET
 
+_asm_inthandler20:
+	PUSH ES
+	PUSH DS
+	PUSHAD
+	MOV EAX, ESP
+	PUSH EAX
+	MOV AX, SS
+	MOV DS, AX
+	MOV ES, AX
+	CALL _inthandler20
+	POP EAX
+	POPAD
+	POP DS
+	POP ES
+	IRETD
+
 _asm_inthandler21:
 	PUSH ES
 	PUSH DS
@@ -161,11 +177,11 @@ mts_loop:
 	MOV EDX, [EBX] ; old = *p
 	MOV [EBX], ESI ; *p = pat0
 	XOR DWORD [EBX], 0xffffffff ; *p ^= 0xffffffff
-	CMP EDI, [EBX] ; if *p != pat1 
+	CMP EDI, [EBX] ; if *p != pat1
 	JNE mts_fin ; goto end
 	XOR DWORD [EBX], 0xffffffff ; *p ^= 0xffffffff
 	CMP ESI, [EBX] ; if *p != pat0
-	JNE mts_fin ; goto end 
+	JNE mts_fin ; goto end
 	MOV [EBX], EDX ; *p = old
 	ADD EAX, 0x1000 ; i += 4096
 	CMP EAX, [ESP+12+8] ; if (i <= end)

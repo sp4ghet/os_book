@@ -9,9 +9,11 @@
 #include "keyboard.h"
 #include "memman.h"
 #include "sheets.h"
+#include "timer.h"
 
 extern struct FIFO keybuf;
 extern struct FIFO mousebuf;
+extern struct TIMERCTL timerctl;
 
 void HariMain(void){
     struct BOOTINFO *binfo = (struct BOOTINFO*) ADR_BOOTINFO;
@@ -26,8 +28,6 @@ void HariMain(void){
     int mx = (binfo->screenX - 16) / 2,
         my = (binfo->screenY - 28 - 16) / 2;
 
-    unsigned int counter = 0;
-
     // initialize GDT/IDT and PIC
     // we do this first because the asmhead doesn't load the proper GDT/IDT and we will have garbage interrupts piling up in the PIC
     init_gdtidt();
@@ -36,6 +36,11 @@ void HariMain(void){
 
     fifo8_init(&keybuf, 32, kbuf);
     fifo8_init(&mousebuf, 128, mbuf);
+
+    init_pit();
+    // enable timer, mouse, and keyboard interrupt handlers
+    io_out8(PIC0_IMR, 0xf8);
+    io_out8(PIC1_IMR, 0xef);
 
     unsigned int mem_total = memtest(0x00400000, 0xbfffffff);
     memman_init(memman);
@@ -78,13 +83,9 @@ void HariMain(void){
     init_keyboard();
     enable_mouse(&mdec);
 
-    // initialize mouse and keyboard interrupt handlers
-    io_out8(PIC0_IMR, 0xf9);
-    io_out8(PIC1_IMR, 0xef);
 
     for(;;){
-        counter++;
-        sprintf(s, "%010d", counter);
+        sprintf(s, "%010d", timerctl.count);
         boxfill(buf_win, 160, COL8_c6c6c6, 40, 28, 119, 43);
         putfonts8_asci(buf_win, 160, 40, 28, COL8_000000, s);
         sheet_refresh(sheet_win, 40, 28, 120, 44);
