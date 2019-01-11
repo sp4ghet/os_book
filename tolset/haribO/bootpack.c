@@ -23,6 +23,9 @@ void HariMain(void){
     struct SHEET *sheet_back, *sheet_mouse, *sheet_win;
     unsigned char *buf_back, buf_mouse[256], *buf_win;
 
+    struct FIFO timerfifo;
+    unsigned char timerbuf[8];
+
     unsigned char *kbuf, *mbuf;
     char s[40];
     int mx = (binfo->screenX - 16) / 2,
@@ -56,33 +59,33 @@ void HariMain(void){
     buf_back = (unsigned char *) memman_alloc_4k(memman, binfo->screenX * binfo->screenY);
     buf_win = (unsigned char *) memman_alloc_4k(memman, 160 * 52);
     sheet_setbuf(sheet_back, buf_back, binfo->screenX, binfo->screenY, -1); // no transparent color
-    sheet_setbuf(sheet_mouse, buf_mouse, 16, 16, 99); // color 99 is transparent
+    sheet_setbuf(sheet_mouse, buf_mouse, 16, 16, 66); // color 66 is transparent
     sheet_setbuf(sheet_win, buf_win, 160, 52, -1);
-
-    sheet_updown(sheet_back, 0);
-    sheet_updown(sheet_win, 1);
-    sheet_updown(sheet_mouse, 2);
 
     sheet_slide(sheet_back, 0, 0);
     sheet_slide(sheet_mouse, mx, my);
     sheet_slide(sheet_win, 80, 72);
 
     init_screen(buf_back, binfo->screenX, binfo->screenY);
-    init_cursor(buf_mouse, 99);
+    init_cursor(buf_mouse, 66);
 
     sprintf(s, "(%d, %d)", mx, my);
     boxfill(buf_back, sheet_back->bxsize, COL8_008484, 0, 0, 160, 16);
     putfonts8_asci(buf_back, sheet_back->bxsize, 0, 0, COL8_ffffff, s);
     sprintf(s, "memory: %dMB, free: %dMB", mem_total / (1024*1024), memman_total(memman) / (1024*1024));
-    putfonts8_asci(buf_back, binfo->screenX, 0, 64, COL8_ffffff, s);
-    sheet_refresh(sheet_back, 0, 0, sheet_back->bxsize, sheet_back->bysize);
+    putfonts8_asci(buf_back, binfo->screenX, 0, 48, COL8_ffffff, s);
 
     make_window8(buf_win, 160, 52, "counter");
-    sheet_refresh(sheet_win, 0, 0, 160, 52);
+
+    sheet_updown(sheet_back, 0);
+    sheet_updown(sheet_win, 1);
+    sheet_updown(sheet_mouse, 2);
 
     init_keyboard();
     enable_mouse(&mdec);
 
+    fifo8_init(&timerfifo, 8, timerbuf);
+    settimer(1000, &timerfifo, 1);
 
     for(;;){
         sprintf(s, "%010d", timerctl.count);
@@ -91,7 +94,7 @@ void HariMain(void){
         sheet_refresh(sheet_win, 40, 28, 120, 44);
 
         io_cli();
-        if(fifo8_status(&keybuf) + fifo8_status(&mousebuf) == 0){
+        if(fifo8_status(&keybuf) + fifo8_status(&mousebuf) + fifo8_status(&timerfifo) == 0){
             io_sti();
         }else{
             if(fifo8_status(&keybuf) != 0){
@@ -127,6 +130,11 @@ void HariMain(void){
                     putfonts8_asci(buf_back, binfo->screenX, 0, 0, COL8_ffffff, s);
                     sheet_refresh(sheet_back, 0, 0, binfo->screenX, 32);
                 }
+            }else if(fifo8_status(&timerfifo) != 0){
+                fifo8_get(&timerfifo);
+                io_sti();
+                putfonts8_asci(buf_back, binfo->screenX, 0, 64, COL8_ffffff, "10[sec]");
+                sheet_refresh(sheet_back, 0, 64, 56, 80);
             }
         }
     }
