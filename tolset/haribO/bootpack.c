@@ -85,7 +85,9 @@ void HariMain(void){
     enable_mouse(&mdec);
 
     fifo8_init(&timerfifo, 8, timerbuf);
-    settimer(1000, &timerfifo, 1);
+    struct TIMER *timer = timer_alloc();
+    timer_init(timer, &timerfifo, 1);
+    timer_settimeout(timer, 1000);
 
     for(;;){
         sprintf(s, "%010d", timerctl.count);
